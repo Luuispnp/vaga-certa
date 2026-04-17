@@ -22,6 +22,10 @@ class Vaga {
     this.estaOcupada = false;
     this.corLed = "VERDE";
 
+    // Filtro de ruídos
+    this.confirmacoes = 0; // Contador para filtrar pedestres
+    this.historico = [];
+
     // Criação do Elemento no HTML
     this.elemento = document.createElement('div');
     this.elemento.className = `vaga ${this.corLed}`;
@@ -33,10 +37,25 @@ class Vaga {
   processar() {
     const distancia = this.sensor.lerDistancia();
     const limiteOcupado = 50;
+    const ciclosParaConfirmar = 3; // O objeto precisa ficar 3 ciclos para ser um veículo
 
-    this.estaOcupada = distancia < limiteOcupado;
-    this.corLed = this.estaOcupada ? "VERMELHO" : "VERDE";
-    this.elemento.className = `vaga ${this.corLed}`;
+    // Lógica de Filtro (diferenciar pedestre de veículo)
+    if (distancia < limiteOcupado) {
+      this.confirmacoes++;
+    } else {
+      this.confirmacoes = 0; // Reset imediato se o sensor liberar
+    }
+
+    // Só altera o estado se confirmar a presença contínua
+    if (this.confirmacoes >= ciclosParaConfirmar && !this.estaOcupada) {
+      this.mudarEstado(true);
+    } else if (this.confirmacoes === 0 && this.estaOcupada) {
+      this.mudarEstado(false);
+    }
+  }
+
+  mudarEstado(novoStatus) {
+    
   }
 }
 
@@ -63,7 +82,7 @@ class SistemaEstacionamento {
       });
 
       document.getElementById('contador').innerText = contadorLivres;
-    }, 2000);
+    }, 1000);
   }
 }
 
