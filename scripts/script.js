@@ -55,7 +55,20 @@ class Vaga {
   }
 
   mudarEstado(novoStatus) {
-    
+    this.estaOcupada = novoStatus;
+    this.corLed = this.estaOcupada ? "VERMELHO" : "VERDE";
+    this.elemento.className = `vaga ${this.corLed}`;
+
+    // Registro do Histórico (Data e Hora)
+    const registro = {
+      vaga: this.id,
+      status: this.estaOcupada ? "Entrada" : "Saída",
+      horario: new Date().toLocaleString(),
+      timestamp: Date.now()
+    };
+
+    this.historico.push(registro);
+    console.log("Novo Registro: ", registro);
   }
 }
 
@@ -84,7 +97,26 @@ class SistemaEstacionamento {
       document.getElementById('contador').innerText = contadorLivres;
     }, 1000);
   }
+
+  /**
+   * Novos Métodos e Análise de Dados
+   */
+  exportarDados() {
+    const todosDados = this.vagas.flatMap(v => v.historico);
+    const blob = new Blob([JSON.stringify(todosDados, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'historico_vaga_certa.json';
+    a.click();
+  }
+
+  getHorariosPico() {
+    const todosDados = this.vagas.flatMap(v => v.historico);
+    const entradas = todosDados.filter(d => d.status === "Entrada");
+    console.log("Análise de Pico baseada em", entradas.length, "entradas.");
+  }
 }
 
-const sistema = new SistemaEstacionamento(5);
+const sistema = new SistemaEstacionamento(10);
 sistema.executarLoop();
