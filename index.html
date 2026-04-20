@@ -22,12 +22,12 @@
     
     <div class="controles">
       <div class="input-group">
-        <label>Vagas:</label>
-        <input type="number" id="inputVagas" value="5" min="1">
+        <label>Vagas (Máx 50):</label>
+        <input type="number" id="inputVagas" value="5" min="1" max="50">
       </div>
       <div class="input-group">
-        <label>Sensor (cm):</label>
-        <input type="number" id="inputLimite" value="50">
+        <label>Sensor (Máx 300cm):</label>
+        <input type="number" id="inputLimite" value="50" min="10" max="300">
       </div>
       <button class="btn-main" onclick="configurarSistema()">Aplicar e Reiniciar</button>
     </div>
@@ -39,6 +39,20 @@
   </section>
 
   <div id="estacionamento"></div>
+
+  <section id="logs-container">
+    <h3>Últimas Atividades</h3>
+    <table id="tabela-logs">
+      <thead>
+        <tr>
+          <th>Vaga</th>
+          <th>Evento</th>
+          <th>Horário</th>
+        </tr>
+      </thead>
+      <tbody id="lista-logs"></tbody>
+    </table>
+  </section>
 
   <script src="scripts/script.js"></script>
 </body>
