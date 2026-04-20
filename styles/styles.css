@@ -1,4 +1,4 @@
-/* Configurações Gerais */
+/* --- SEU DESIGN ORIGINAL (MANTIDO) --- */
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #2c3e50;
@@ -12,10 +12,9 @@ body {
 
 header h1 {
   margin-bottom: 5px;
-  color: #f1c40f; /* Amarelo sinalização */
+  color: #f1c40f;
 }
 
-/* Estilo do Painel de Contagem */
 #painel {
   background-color: #34495e;
   padding: 15px 40px;
@@ -30,16 +29,15 @@ header h1 {
   color: #f1c40f;
 }
 
-/* Container das Vagas */
 #estacionamento {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 20px;
   max-width: 800px;
+  margin-top: 30px;
 }
 
-/* Estilo Individual da Vaga */
 .vaga {
   width: 120px;
   height: 180px;
@@ -51,11 +49,10 @@ header h1 {
   font-weight: bold;
   font-size: 1.1em;
   text-transform: uppercase;
-  transition: all 0.5s ease; /* Efeito suave na troca de cor */
+  transition: all 0.5s ease;
   position: relative;
 }
 
-/* Linhas que simulam a pintura da vaga */
 .vaga::before {
   content: "";
   position: absolute;
@@ -66,7 +63,6 @@ header h1 {
   border: 1px dashed rgba(255,255,255,0.3);
 }
 
-/* ESTADOS (As classes que o JS alterna) */
 .VERDE {
   background-color: #27ae60;
   box-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
@@ -75,4 +71,84 @@ header h1 {
 .VERMELHO {
   background-color: #c0392b;
   box-shadow: 0 0 20px rgba(192, 57, 43, 0.5);
+}
+
+/* --- AJUSTES DAS NOVAS SEÇÕES (RF07) --- */
+
+#configuracoes {
+  background-color: #34495e;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(241, 196, 15, 0.3);
+  width: 100%;
+  max-width: 800px;
+  text-align: center;
+}
+
+#configuracoes h2 {
+  font-size: 1.2em;
+  margin-top: 0;
+  color: #f1c40f;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.controles, .relatorios {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.input-group label {
+  font-size: 0.8em;
+  margin-bottom: 5px;
+  color: #bdc3c7;
+}
+
+input[type="number"] {
+  background: #2c3e50;
+  border: 1px solid #f1c40f;
+  color: white;
+  padding: 8px;
+  border-radius: 5px;
+  width: 80px;
+}
+
+/* Botões Estilizados */
+.btn-main {
+  background-color: #f1c40f;
+  color: #2c3e50;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  align-self: flex-end;
+  transition: background 0.3s;
+}
+
+.btn-main:hover {
+  background-color: #d4ac0d;
+}
+
+.btn-sec {
+  background-color: transparent;
+  color: #f1c40f;
+  border: 1px solid #f1c40f;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-sec:hover {
+  background-color: rgba(241, 196, 15, 0.1);
 }
