@@ -44,7 +44,7 @@ Caso uma leitura apresente valor superior ao limite antes da terceira confirmaç
 
 Se a vaga estiver ocupada e a leitura for superior ao limite, o estado é revertido para Livre sem a necessidade de confirmações múltiplas.
 
-Instruções de Instalação e Execução
+**Instruções de Instalação e Execução**
 
 Realize o clone do repositório ou baixe os arquivos fonte.
 
@@ -54,6 +54,6 @@ Utilize a página de configurações para definir os parâmetros operacionais do
 
 Monitore as etapas de validação através do Console do Desenvolvedor (tecla F12).
 
-Licença
+**Licença**
 
 Projeto desenvolvido para fins de estudo de lógica de programação e arquitetura de sistemas front-end. Permite-se a utilização e modificação para fins educacionais.
