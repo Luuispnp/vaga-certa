@@ -1,4 +1,4 @@
-Vaga Certa - Sistema de Monitoramento de Estacionamento
+*Vaga Certa - Sistema de Monitoramento de Estacionamento*
 
 O Vaga Certa é uma solução para gestão de ocupação de vagas de estacionamento baseada em lógica de sensores de proximidade. O projeto aplica algoritmos de filtragem de dados para garantir a precisão dos estados de ocupação, evitando leituras falsas causadas por interferências externas.
 
