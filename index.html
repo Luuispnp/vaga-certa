@@ -3,56 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema Vaga Certa - Simulação</title>
+  <title>Vaga Certa | Gestão Inteligente</title>
   <link rel="stylesheet" href="styles/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
   
-  <header>
-    <h1>Vaga Certa</h1>
-    <p>Monitoramento de Vagas em Tempo Real</p>
-  </header>
+  <div class="app-container">
+    <header class="main-header">
+      <div class="logo">
+        <div class="logo-icon"></div>
+        <h1>VAGA<span>CERTA</span></h1>
+      </div>
+      <div class="status-badge">
+        <span class="dot"></span>
+        Livres: <strong id="contador">0</strong>
+      </div>
+    </header>
 
-  <div id="painel">
-    <h2>Vagas disponíveis: <span id="contador">0</span></h2>
+    <main class="dashboard-grid">
+      <aside class="sidebar">
+        <section class="glass-card">
+          <h3>Configuração</h3>
+          <div class="input-group">
+            <label>Quantidade de Vagas</label>
+            <input type="number" id="inputVagas" value="5" min="1" max="50">
+          </div>
+          <div class="input-group">
+            <label>Distância Sensor (cm)</label>
+            <input type="number" id="inputLimite" value="50" min="10" max="300">
+          </div>
+          <button class="btn-primary" onclick="configurarSistema()">Atualizar Sistema</button>
+        </section>
+
+        <section class="glass-card">
+          <h3>Relatórios</h3>
+          <button class="btn-outline" onclick="sistema.exportarDados()">Exportar JSON</button>
+          <button class="btn-outline" onclick="sistema.gerarRelatorioPDF()">Gerar PDF</button>
+        </section>
+      </aside>
+
+      <section class="main-content">
+        <div id="estacionamento" class="vagas-grid"></div>
+        
+        <div class="glass-card logs-section">
+          <h3>Últimas Atividades</h3>
+          <ul id="lista-logs" class="custom-scroll"></ul>
+        </div>
+      </section>
+    </main>
   </div>
-
-  <section id="configuracoes">
-    <h2>Configurações do Sistema</h2>
-    
-    <div class="controles">
-      <div class="input-group">
-        <label>Vagas (Máx 50):</label>
-        <input type="number" id="inputVagas" value="5" min="1" max="50">
-      </div>
-      <div class="input-group">
-        <label>Sensor (Máx 300cm):</label>
-        <input type="number" id="inputLimite" value="50" min="10" max="300">
-      </div>
-      <button class="btn-main" onclick="configurarSistema()">Aplicar e Reiniciar</button>
-    </div>
-
-    <div class="relatorios">
-      <button class="btn-sec" onclick="sistema.exportarDados()">Exportar Relatório (JSON)</button>
-      <button class="btn-sec" onclick="sistema.gerarRelatorioPDF()">Exportar Relatório de Pico (PDF)</button>
-    </div>
-  </section>
-
-  <div id="estacionamento"></div>
-
-  <section id="logs-container">
-    <h3>Últimas Atividades</h3>
-    <table id="tabela-logs">
-      <thead>
-        <tr>
-          <th>Vaga</th>
-          <th>Evento</th>
-          <th>Horário</th>
-        </tr>
-      </thead>
-      <tbody id="lista-logs"></tbody>
-    </table>
-  </section>
 
   <script src="scripts/script.js"></script>
 </body>
