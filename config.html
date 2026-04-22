@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vaga Certa | Configurações</title>
+  <link rel="stylesheet" href="styles/global.css">
+  <link rel="stylesheet" href="styles/config.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="config-page">
+  <div class="app-container">
+    <header class="main-header">
+      <div class="logo">
+        <div class="logo-icon admin-gradient"></div>
+        <div class="logo-text">
+            <h1>VAGA<span>CERTA</span></h1>
+            <p>Painel de Controle</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="index.html" class="btn-back">Voltar ao Dashboard</a>
+      </div>
+    </header>
+
+    <main class="config-grid">
+      <section class="glass-card config-card">
+        <div class="card-header-admin"><h3>Vagas & Sensor</h3></div>
+        <div class="card-body">
+            <div class="input-group">
+              <label>Quantidade de Vagas (1-50)</label>
+              <div class="input-field-wrapper">
+                  <input id="inputVagas">
+                  <span class="field-unit">und</span>
+              </div>
+            </div>
+            <div class="input-group">
+              <label>Distância Sensor (10-300cm)</label>
+              <div class="input-field-wrapper">
+                  <input id="inputLimite">
+                  <span class="field-unit">cm</span>
+              </div>
+            </div>
+            <button class="btn-save-action" onclick="salvarConfiguracoes()">Salvar Configurações</button>
+        </div>
+      </section>
+
+      <section class="glass-card config-card">
+        <div class="card-header-admin"><h3>Relatórios</h3></div>
+        <div class="card-body">
+            <div class="actions-group">
+                <button class="btn-secondary-action" onclick="sistema.exportarDados()">Exportar JSON</button>
+                <button class="btn-secondary-action" onclick="sistema.gerarRelatorioPDF()">Relatório de Monitoramento (PDF)</button>
+                <div class="danger-section">
+                    <button class="btn-danger-action" onclick="limparHistorico()">Limpar Histórico</button>
+                </div>
+            </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="scripts/script.js"></script>
+</body>
+</html>

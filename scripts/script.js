@@ -1,225 +1,207 @@
 /**
- * Variáveis Globais: Funcionam como a memória persistente do sistema.
+ * script.js - Sistema Vaga Certa
+ * VERSÃO FINAL: Sincronização em Memória e Filtro de 3 Estágios
  */
-let intervaloGlobal = null;  // Armazena o "batimento cardíaco" (loop) do sistema
-let historicoGlobal = [];    // O "Cofre": guarda todos os registros desde que a página abriu
-let qtdAtualValida = 5;      // Guarda o último número de vagas que deu certo (para rollback)
-let limiteAtualValido = 50;  // Guarda o último limite de sensor que deu certo (para rollback)
 
-/**
- * CLASSE: SensorUltrassonico
- * Simula o comportamento de um sensor físico HC-SR04.
- */
-class SensorUltrassonico {
-  lerDistancia() { 
-    // Gera um número aleatório para simular a variação da distância de um carro
-    return Math.floor(Math.random() * (350 - 10 + 1)) + 10; 
-  }
-}
+// --- CONFIGURAÇÕES E ESTADO GLOBAL ---
+let config = JSON.parse(localStorage.getItem('config_estacionamento')) || {
+    qtdVagas: 5,
+    limite: 50
+};
 
-/**
-* CLASSE: Vaga
-* Gerencia a inteligência individual de cada vaga (Estado, LED e Sensor).
-*/
-class Vaga {
-  constructor(id, limite) {
-    this.id = id;
-    this.sensor = new SensorUltrassonico();
-    this.estaOcupada = false;
-    this.limiteOcupado = limite;
-    this.confirmacoes = 0; // Contador para o filtro de ruído (RF07)
+// Variável em memória para garantir que o contador de confirmações não resete
+let vagasGlobais = [];
 
-    // Cria o elemento visual (o card da vaga) no HTML
-    this.elemento = document.createElement('div');
-    this.elemento.className = `vaga VERDE`;
-    this.elemento.innerText = `Vaga ${this.id}`;
-    document.getElementById('estacionamento').appendChild(this.elemento);
-  }
+// --- INICIALIZAÇÃO ---
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('estacionamento')) {
+        inicializarVagas();
+        renderizarVagas();
+        atualizarContador();
+        carregarLogs();
+        
+        // Loop principal: Processa todos os sensores a cada 1 segundo
+        setInterval(processarSensores, 1000);
+    }
 
-  /**
-  * Lógica de Processamento: É chamada a cada 1 segundo.
-  */
-  processar() {
-    const distancia = this.sensor.lerDistancia();
+    if (document.getElementById('inputVagas')) {
+        document.getElementById('inputVagas').value = config.qtdVagas;
+        document.getElementById('inputLimite').value = config.limite;
+    }
+});
+
+// Inicializa o array de vagas na memória do navegador
+function inicializarVagas() {
+    const salvo = JSON.parse(localStorage.getItem('estado_vagas')) || [];
     
-    // RF07: Filtro para ignorar objetos transitórios (pedestres)
-    if (distancia < this.limiteOcupado) {
-      this.confirmacoes++;
+    // Se o que está salvo bate com a config atual, usamos o salvo, senão criamos novo
+    if (salvo.length === config.qtdVagas) {
+        vagasGlobais = salvo;
     } else {
-      this.confirmacoes = 0;
+        vagasGlobais = Array.from({ length: config.qtdVagas }, (_, i) => ({
+            id: i + 1,
+            status: "VERDE", // VERDE = Livre, VERMELHO = Ocupado
+            leiturasPresenca: 0
+        }));
+        localStorage.setItem('estado_vagas', JSON.stringify(vagasGlobais));
     }
-
-    // Só muda para ocupado se detectar presença por 3 ciclos seguidos
-    if (this.confirmacoes >= 3 && !this.estaOcupada) {
-      this.mudarEstado(true);
-    } 
-    // Se o sensor limpar (0 confirmações), a vaga libera imediatamente
-    else if (this.confirmacoes === 0 && this.estaOcupada) {
-      this.mudarEstado(false);
-    }
-  }
-
-  /**
-  * Troca a cor da vaga e gera o log do evento.
-  */
-  mudarEstado(novoStatus) {
-    this.estaOcupada = novoStatus;
-    this.elemento.className = `vaga ${this.estaOcupada ? "VERMELHO" : "VERDE"}`;
-
-    // Cria o objeto de registro (log)
-    const registro = {
-      vaga: this.id,
-      status: this.estaOcupada ? "Entrada" : "Saída",
-      horario: new Date().toLocaleTimeString('pt-BR'),
-      timestamp: Date.now()
-    };
-
-    historicoGlobal.push(registro); // Salva no cofre global
-    this.desenharLinhaTabela(registro); // Atualiza a tabela visual
-  }
-
-  /**
-  * Insere uma nova linha no topo da tabela de "Últimas Atividades"
-  */
-  desenharLinhaTabela(reg) {
-    const lista = document.getElementById('lista-logs');
-    if (!lista) return;
-
-    const linha = document.createElement('tr');
-    const classeStatus = reg.status === "Entrada" ? "log-entrada" : "log-saida";
-    
-    linha.innerHTML = `
-      <td>Vaga ${reg.vaga}</td>
-      <td class="${classeStatus}">${reg.status}</td>
-      <td>${reg.horario}</td>
-    `;
-    
-    // Remove o registro mais antigo se já houver 5 na tela (para não esticar a página)
-    if (lista.children.length >= 5) {
-      lista.removeChild(lista.lastChild);
-    }
-    // Insere no topo (como o histórico do Windows ou logs de servidor)
-    lista.insertBefore(linha, lista.firstChild);
-  }
 }
 
-/**
- * CLASSE: SistemaEstacionamento
- * O "Gerente": controla todas as vagas e a geração de relatórios.
- */
-class SistemaEstacionamento {
-  constructor(qtd, limite) {
-    this.vagas = [];
-    // Cria as instâncias de Vaga conforme a quantidade escolhida
-    for (let i = 1; i <= qtd; i++) {
-      this.vagas.push(new Vaga(i, limite));
-    }
-  }
+// Desenha as vagas na tela
+function renderizarVagas() {
+    const container = document.getElementById('estacionamento');
+    if (!container) return;
 
-  /**
-   * O "Super-Loop": faz o sistema pulsar a cada 1000ms (1 segundo)
-   */
-  executarLoop() {
-    if (intervaloGlobal) clearInterval(intervaloGlobal); // Para o loop anterior antes de começar um novo
-    
-    intervaloGlobal = setInterval(() => {
-      let contadorLivres = 0;
-        this.vagas.forEach(vaga => {
-          vaga.processar(); // Cada vaga verifica seu sensor
-          if (!vaga.estaOcupada) contadorLivres++;
-        });
-        // Atualiza o painel principal de contagem
-        document.getElementById('contador').innerText = contadorLivres;
-    }, 1000);
-  }
+    container.innerHTML = "";
+    vagasGlobais.forEach(vaga => {
+        const textoStatus = vaga.status === "VERDE" ? "Livre" : "Ocupada";
+        const vagaElement = document.createElement('div');
+        vagaElement.className = `vaga ${vaga.status}`;
+        vagaElement.innerHTML = `
+            <strong>${vaga.id.toString().padStart(2, '0')}</strong>
+            <small>${textoStatus}</small>
+        `;
+        container.appendChild(vagaElement);
+    });
+}
 
-  /**
-   * Gera um arquivo JSON para download com os dados brutos
-   */
-  exportarDados() {
-    if (historicoGlobal.length === 0) return alert("Histórico vazio.");
-      const blob = new Blob([JSON.stringify(historicoGlobal, null, 2)], {type: 'application/json'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'vaga_certa_historico.json';
-      a.click();
-  }
+// --- LÓGICA DOS SENSORES ---
+function processarSensores() {
+    let houveMudancaEstado = false;
 
-  /**
-   * Processa o histórico e gera um relatório impresso (PDF/Janela)
-   */
-  gerarRelatorioPDF() {
-    if (historicoGlobal.length === 0) return alert("Sem dados para o relatório.");
-    
-    const picos = {};
-    historicoGlobal.forEach(r => {
-      if (r.status === "Entrada") {
-        const hora = new Date(r.timestamp).getHours().toString().padStart(2, '0');
-        picos[hora] = (picos[hora] || 0) + 1;
-      }
+    vagasGlobais.forEach(vaga => {
+        let distanciaLida;
+
+        // Simulação inteligente: se começou a detectar, força a manter o objeto lá para teste
+        if (vaga.leiturasPresenca > 0 || vaga.status === "VERMELHO") {
+            // 90% de chance de manter o carro (distância baixa), 10% de chance de sair (distância alta)
+            distanciaLida = Math.random() > 0.1 ? (Math.random() * (config.limite - 5)) : (config.limite + 20);
+        } else {
+            // Se está livre, 10% de chance de um carro tentar entrar
+            distanciaLida = Math.random() < 0.1 ? (Math.random() * (config.limite - 5)) : (Math.random() * 200 + config.limite);
+        }
+        
+        const detectouPresenca = distanciaLida <= config.limite;
+
+        if (vaga.status === "VERDE") {
+            // LÓGICA DE ENTRADA (Filtro de 3 segundos)
+            if (detectouPresenca) {
+                vaga.leiturasPresenca++;
+                console.log(`[SENSOR] Vaga ${vaga.id}: ${Math.floor(distanciaLida)}cm | Confirmação: ${vaga.leiturasPresenca}/3`);
+                
+                if (vaga.leiturasPresenca >= 3) {
+                    vaga.status = "VERMELHO";
+                    vaga.leiturasPresenca = 0;
+                    registrarLog("ENTRADA", vaga.id, Math.floor(distanciaLida));
+                    houveMudancaEstado = true;
+                }
+            } else {
+                // Se o sensor der leitura alta, reseta o contador de confirmação imediatamente
+                vaga.leiturasPresenca = 0;
+            }
+        } else {
+            // LÓGICA DE SAÍDA (Imediata se distância > limite)
+            if (!detectouPresenca) {
+                vaga.status = "VERDE";
+                vaga.leiturasPresenca = 0;
+                registrarLog("SAIDA", vaga.id, Math.floor(distanciaLida));
+                houveMudancaEstado = true;
+            }
+        }
     });
 
-    let html = `<body style="font-family:sans-serif; padding:40px;"><h1>Relatório de Picos</h1><hr><ul>`;
-    for (let h in picos) html += `<li>Das ${h}:00 às ${h}:59: ${picos[h]} entrada(s)</li>`;
+    // Atualiza o visual e o banco de dados apenas se uma vaga mudou de cor
+    if (houveMudancaEstado) {
+        localStorage.setItem('estado_vagas', JSON.stringify(vagasGlobais));
+        renderizarVagas();
+        atualizarContador();
+        carregarLogs();
+    }
+}
+
+// --- UTILITÁRIOS E INTERFACE ---
+
+function registrarLog(tipo, vagaId, distancia) {
+    const logs = JSON.parse(localStorage.getItem('logs_vagas')) || [];
+    const novoRegistro = {
+        tipo: tipo,
+        vaga: vagaId.toString().padStart(2, '0'),
+        horario: new Date().toLocaleTimeString('pt-BR'),
+        distancia: distancia
+    };
+    logs.push(novoRegistro);
+    if (logs.length > 100) logs.shift();
+    localStorage.setItem('logs_vagas', JSON.stringify(logs));
+
+    // Console log colorido para validação
+    const cor = tipo === 'ENTRADA' ? 'color: #ff4757' : 'color: #2ed573';
+    console.log(`%c[SISTEMA] %c${tipo} EFETIVADA %cVaga ${novoRegistro.vaga}`, 'font-weight:bold; color:orange', `font-weight:bold; ${cor}`, 'color:white');
+}
+
+function carregarLogs() {
+    const lista = document.getElementById('lista-logs');
+    if (!lista) return;
+    const logs = JSON.parse(localStorage.getItem('logs_vagas')) || [];
+    lista.innerHTML = logs.slice(-10).reverse().map(log => `
+        <li class="log-${log.tipo.toLowerCase()}" style="display:flex; justify-content:space-between; padding:10px 20px; border-bottom:1px solid rgba(255,255,255,0.05); list-style:none;">
+            <span>${log.tipo === 'ENTRADA' ? '⬆️' : '⬇️'} Vaga ${log.vaga}</span>
+            <strong style="color:#94a3b8;">${log.horario}</strong>
+        </li>
+    `).join('');
+}
+
+function salvarConfiguracoes() {
+    const inputVagas = document.getElementById('inputVagas');
+    const inputLimite = document.getElementById('inputLimite');
     
-    const win = window.open('', '', 'width=800,height=600');
-    win.document.write(html + `</ul></body>`);
-    win.document.close();
-    setTimeout(() => win.print(), 500);
-  }
+    const novaQtd = parseInt(inputVagas.value);
+    const novoLimite = parseInt(inputLimite.value);
+
+    if (novaQtd >= 1 && novaQtd <= 50 && novoLimite >= 1 && novoLimite <= 300) {
+        config = { qtdVagas: novaQtd, limite: novoLimite };
+        localStorage.setItem('config_estacionamento', JSON.stringify(config));
+        localStorage.removeItem('estado_vagas'); // Força a reinicialização
+        alert("✅ Configurações salvas!");
+        location.href = 'index.html';
+    } else {
+        alert("Valores inválidos! Vagas (1-50), Limite (1-300)");
+    }
 }
 
-/**
- * FUNÇÃO DE CONFIGURAÇÃO: O ponto de entrada do usuário.
- * Faz as validações de limites e reinicia a visão sem apagar a memória global.
- */
-function configurarSistema() {
-  const inputV = document.getElementById('inputVagas');
-  const inputL = document.getElementById('inputLimite');
-
-  let novaQtd = parseInt(inputV.value);
-  let novoLimite = parseInt(inputL.value);
-
-  // Validação de Vagas (1 a 50)
-  if (isNaN(novaQtd) || novaQtd < 1) {
-    alert("Mínimo de 1 vaga. Ajustando...");
-    novaQtd = 1; inputV.value = 1;
-  } else if (novaQtd > 50) {
-    alert("Máximo de 50 vagas. Ajustando...");
-    novaQtd = 50; inputV.value = 50;
-  }
-
-  // Validação de Sensor (10 a 300cm)
-  if (isNaN(novoLimite) || novoLimite < 10) {
-    alert("Mínimo de 10cm. Ajustando...");
-    novoLimite = 10; inputL.value = 10;
-  } else if (novoLimite > 300) {
-    alert("Máximo de 300cm. Ajustando...");
-    novoLimite = 300; inputL.value = 300;
-  }
-
-  // Guarda os novos valores válidos
-  qtdAtualValida = novaQtd;
-  limiteAtualValido = novoLimite;
-
-  // Limpa apenas a representação VISUAL
-  document.getElementById('estacionamento').innerHTML = "";
-  const listaLogs = document.getElementById('lista-logs');
-  listaLogs.innerHTML = ""; 
-
-  // Cria um novo sistema gráfico
-  window.sistema = new SistemaEstacionamento(novaQtd, novoLimite);
-  window.sistema.executarLoop();
-
-  // RECUPERAÇÃO: Mostra os últimos logs que já estavam no cofre antes do reinício
-  const logsRecuperados = historicoGlobal.slice(-5).reverse();
-  logsRecuperados.forEach(reg => {
-    const linha = document.createElement('tr');
-    const classe = reg.status === "Entrada" ? "log-entrada" : "log-saida";
-    linha.innerHTML = `<td>Vaga ${reg.vaga}</td><td class="${classe}">${reg.status}</td><td>${reg.horario}</td>`;
-    listaLogs.appendChild(linha);
-  });
+function atualizarContador() {
+    const contador = document.getElementById('contador');
+    if (contador) {
+        const livres = vagasGlobais.filter(v => v.status === "VERDE").length;
+        contador.innerText = livres;
+    }
 }
 
-// Inicializa o sistema automaticamente ao abrir a página
-window.onload = configurarSistema;
+window.sistema = {
+    exportarDados: () => {
+        const logs = localStorage.getItem('logs_vagas') || "[]";
+        const blob = new Blob([logs], { type: "application/json" });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = "historico_estacionamento.json";
+        a.click();
+    },
+    gerarRelatorioPDF: () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const logs = JSON.parse(localStorage.getItem('logs_vagas')) || [];
+        doc.text("VAGA CERTA - RELATÓRIO DE MONITORAMENTO", 20, 20);
+        let y = 40;
+        logs.slice(-20).reverse().forEach(l => {
+            doc.text(`${l.horario} | ${l.tipo} | Vaga ${l.vaga} | Dist: ${l.distancia}cm`, 20, y);
+            y += 10;
+        });
+        doc.save("Relatorio.pdf");
+    }
+};
+
+function limparHistorico() {
+    if (confirm("Isso apagará todas as configurações e logs. Confirmar?")) {
+        localStorage.clear();
+        location.reload();
+    }
+}

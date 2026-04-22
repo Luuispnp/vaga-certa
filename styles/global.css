@@ -1,0 +1,62 @@
+:root {
+  --bg: #0b0f1a;
+  --surface: #161b2c;
+  --accent: #f1c40f;
+  --success: #10b981;
+  --danger: #ef4444;
+  --text-main: #f8fafc;
+  --text-dim: #94a3b8;
+  --radius: 18px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg);
+  background-image: radial-gradient(circle at 50% -20%, #1e293b 0%, #0b0f1a 80%);
+  color: var(--text-main);
+  min-height: 100vh;
+  padding: 40px 20px;
+}
+
+.app-container { max-width: 1100px; margin: 0 auto; }
+
+/* Header Global */
+.main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 50px;
+}
+
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo-icon { width: 35px; height: 35px; background: var(--accent); border-radius: 10px; box-shadow: 0 0 15px rgba(241, 196, 15, 0.3); }
+.logo-text h1 { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+.logo-text h1 span { color: var(--accent); }
+.logo-text p { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; margin-top: 4px; }
+
+/* Botões de Navegação */
+.btn-settings-link, .btn-back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+  padding: 10px 18px;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: 0.3s;
+}
+
+.btn-settings-link:hover, .btn-back:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Estilos de Botões de Ação (Para Config.html) */
+.btn-primary { background: var(--accent); color: var(--bg); font-weight: 700; padding: 12px; border-radius: 10px; border: none; cursor: pointer; }
+.btn-outline { background: transparent; border: 1px solid #334155; color: white; padding: 10px; border-radius: 10px; cursor: pointer; }

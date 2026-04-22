@@ -3,57 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema Vaga Certa - Simulação</title>
-  <link rel="stylesheet" href="styles/styles.css">
+  <title>Vaga Certa | Dashboard</title>
+  <link rel="stylesheet" href="styles/global.css">
+  <link rel="stylesheet" href="styles/dashboard.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-  
-  <header>
-    <h1>Vaga Certa</h1>
-    <p>Monitoramento de Vagas em Tempo Real</p>
-  </header>
+  <div class="app-container">
+    <header class="main-header">
+      <div class="logo">
+        <div class="logo-icon"></div>
+        <div class="logo-text">
+            <h1>VAGA<span>CERTA</span></h1>
+            <p>Monitoramento em Tempo Real</p>
+        </div>
+      </div>
+      
+      <div class="status-badge">
+        <span class="dot pulse"></span>
+        Livres: <strong id="contador">0</strong>
+      </div>
 
-  <div id="painel">
-    <h2>Vagas disponíveis: <span id="contador">0</span></h2>
+      <div class="header-actions">
+        <a href="config.html" class="btn-settings-link">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1V15a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Configurações
+        </a>
+      </div>
+    </header>
+
+    <main>
+      <div class="grid-wrapper">
+        <div id="estacionamento" class="vagas-grid"></div>
+      </div>
+      
+      <div class="log-container">
+        <div class="log-card">
+          <div class="log-header">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+              <h3>Fluxo de Atividade</h3>
+          </div>
+          <ul id="lista-logs" class="custom-scroll"></ul>
+        </div>
+      </div>
+    </main>
   </div>
-
-  <section id="configuracoes">
-    <h2>Configurações do Sistema</h2>
-    
-    <div class="controles">
-      <div class="input-group">
-        <label>Vagas (Máx 50):</label>
-        <input type="number" id="inputVagas" value="5" min="1" max="50">
-      </div>
-      <div class="input-group">
-        <label>Sensor (Máx 300cm):</label>
-        <input type="number" id="inputLimite" value="50" min="10" max="300">
-      </div>
-      <button class="btn-main" onclick="configurarSistema()">Aplicar e Reiniciar</button>
-    </div>
-
-    <div class="relatorios">
-      <button class="btn-sec" onclick="sistema.exportarDados()">Exportar Relatório (JSON)</button>
-      <button class="btn-sec" onclick="sistema.gerarRelatorioPDF()">Exportar Relatório de Pico (PDF)</button>
-    </div>
-  </section>
-
-  <div id="estacionamento"></div>
-
-  <section id="logs-container">
-    <h3>Últimas Atividades</h3>
-    <table id="tabela-logs">
-      <thead>
-        <tr>
-          <th>Vaga</th>
-          <th>Evento</th>
-          <th>Horário</th>
-        </tr>
-      </thead>
-      <tbody id="lista-logs"></tbody>
-    </table>
-  </section>
-
   <script src="scripts/script.js"></script>
 </body>
 </html>
