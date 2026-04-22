@@ -1,8 +1,8 @@
 let intervaloGlobal = null;
-let historicoGlobal = [];
+let historicoGlobal = JSON.parse(localStorage.getItem('vagaCerta_logs')) || [];
 
 class SensorSimulado {
-  ler() { return Math.floor(Math.random() * 300) + 1; }
+  ler() { return Math.floor(Math.random() * 350) + 1; }
 }
 
 class Vaga {
@@ -16,14 +16,12 @@ class Vaga {
   }
 
   renderizar() {
+    const container = document.getElementById('estacionamento');
+    if (!container) return null;
     const div = document.createElement('div');
     div.className = 'vaga VERDE';
-    // AJUSTE: Ordem invertida (strong antes de small) para alinhar melhor verticalmente
-    div.innerHTML = `
-      <strong>${this.id < 10 ? '0' + this.id : this.id}</strong>
-      <small>Disponível</small>
-    `;
-    document.getElementById('estacionamento').appendChild(div);
+    div.innerHTML = `<strong>${this.id < 10 ? '0' + this.id : this.id}</strong><small>Disponível</small>`;
+    container.appendChild(div);
     return div;
   }
 
@@ -38,8 +36,10 @@ class Vaga {
 
   mudar(status) {
     this.ocupada = status;
-    this.dom.className = `vaga ${status ? 'VERMELHO' : 'VERDE'}`;
-    this.dom.querySelector('small').innerText = status ? 'Ocupada' : 'Disponível';
+    if (this.dom) {
+      this.dom.className = `vaga ${status ? 'VERMELHO' : 'VERDE'}`;
+      this.dom.querySelector('small').innerText = status ? 'Ocupada' : 'Disponível';
+    }
     
     const registro = {
       texto: `Vaga ${this.id}: ${status ? 'Entrada' : 'Saída'}`,
@@ -48,17 +48,19 @@ class Vaga {
     };
     
     historicoGlobal.push(registro);
+    localStorage.setItem('vagaCerta_logs', JSON.stringify(historicoGlobal));
     this.adicionarLog(registro);
-    window.sistema.atualizarContador();
+    if (window.sistema) window.sistema.atualizarContador();
   }
 
   adicionarLog(reg) {
     const lista = document.getElementById('lista-logs');
-    if (!lista) return; // Segurança caso o elemento não exista
+    if (!lista) return;
     const li = document.createElement('li');
     li.className = reg.classe;
     li.innerHTML = `<span>${reg.texto}</span> <strong>${reg.hora}</strong>`;
     lista.prepend(li);
+    if (lista.children.length > 30) lista.lastChild.remove();
   }
 }
 
@@ -66,6 +68,18 @@ class GestorEstacionamento {
   constructor(qtd, limite) {
     this.vagas = Array.from({length: qtd}, (_, i) => new Vaga(i + 1, limite));
     this.atualizarContador();
+    this.carregarLogsAntigos();
+  }
+
+  carregarLogsAntigos() {
+    const lista = document.getElementById('lista-logs');
+    if (!lista) return;
+    historicoGlobal.slice(-15).forEach(reg => {
+      const li = document.createElement('li');
+      li.className = reg.classe;
+      li.innerHTML = `<span>${reg.texto}</span> <strong>${reg.hora}</strong>`;
+      lista.prepend(li);
+    });
   }
 
   atualizarContador() {
@@ -75,46 +89,46 @@ class GestorEstacionamento {
   }
 
   exportarDados() {
-    if(historicoGlobal.length === 0) return alert("Sem dados para exportar.");
     const blob = new Blob([JSON.stringify(historicoGlobal, null, 2)], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'historico_vagas.json'; a.click();
-    URL.revokeObjectURL(url); // Limpeza de memória
+    a.href = url; a.download = 'historico.json'; a.click();
   }
 
   gerarRelatorioPDF() {
-    if(historicoGlobal.length === 0) return alert("Histórico vazio.");
     const win = window.open('', '_blank');
-    if (!win) return alert("Por favor, permita pop-ups para visualizar o relatório.");
-    win.document.write(`<html><head><title>Relatório Vaga Certa</title></head><body style="font-family:sans-serif; padding:40px;"><h2>Histórico Vaga Certa</h2><hr>`);
-    historicoGlobal.forEach(h => win.document.write(`<p><strong>${h.hora}</strong> - ${h.texto}</p>`));
-    win.document.write(`</body></html>`);
+    win.document.write(`<html><body style="font-family:sans-serif;padding:40px"><h2>Relatório Vaga Certa</h2><hr>`);
+    historicoGlobal.forEach(h => win.document.write(`<p>${h.hora} - ${h.texto}</p>`));
     win.document.close(); win.print();
   }
 }
 
-function configurarSistema() {
-  if (intervaloGlobal) clearInterval(intervaloGlobal);
-  
-  const estacionamentoDom = document.getElementById('estacionamento');
-  const listaLogsDom = document.getElementById('lista-logs');
-  
-  if (estacionamentoDom) estacionamentoDom.innerHTML = '';
-  if (listaLogsDom) listaLogsDom.innerHTML = '';
-  
-  const inputVagasDom = document.getElementById('inputVagas');
-  const inputLimiteDom = document.getElementById('inputLimite');
-  
-  const v = inputVagasDom ? parseInt(inputVagasDom.value) : 5;
-  const l = inputLimiteDom ? parseInt(inputLimiteDom.value) : 50;
-  
-  window.sistema = new GestorEstacionamento(v, l);
-  intervaloGlobal = setInterval(() => {
-    if (window.sistema && window.sistema.vagas) {
-        window.sistema.vagas.forEach(v => v.monitorar());
-    }
-  }, 2000);
+function salvarConfiguracoes() {
+  const v = document.getElementById('inputVagas').value;
+  const l = document.getElementById('inputLimite').value;
+  localStorage.setItem('vagaCerta_config', JSON.stringify({vagas: v, limite: l}));
+  alert("Configurações Aplicadas!");
 }
 
-window.onload = configurarSistema;
+function limparHistorico() {
+  if (confirm("Limpar todos os registos?")) {
+    localStorage.removeItem('vagaCerta_logs');
+    historicoGlobal = [];
+    location.reload();
+  }
+}
+
+window.onload = () => {
+  const config = JSON.parse(localStorage.getItem('vagaCerta_config')) || {vagas: 5, limite: 50};
+  
+  if (document.getElementById('inputVagas')) {
+    document.getElementById('inputVagas').value = config.vagas;
+    document.getElementById('inputLimite').value = config.limite;
+  }
+
+  window.sistema = new GestorEstacionamento(parseInt(config.vagas), parseInt(config.limite));
+  
+  if (document.getElementById('estacionamento')) {
+    intervaloGlobal = setInterval(() => window.sistema.vagas.forEach(v => v.monitorar()), 2000);
+  }
+};

@@ -1,0 +1,111 @@
+/* Badge de Status no Header */
+.status-badge {
+  background: var(--surface);
+  padding: 10px 20px;
+  border-radius: 100px;
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
+.dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; }
+.pulse { animation: pulse 2s infinite; }
+
+/* Grid Centralizado (Máx 5) */
+.grid-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 50px;
+}
+
+.vagas-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 160px);
+  gap: 20px;
+  justify-content: center;
+}
+
+/* Estilo dos Cards de Vaga */
+.vaga {
+  height: 180px;
+  background: rgba(22, 27, 44, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  transition: transform 0.3s ease;
+}
+
+.vaga:hover { transform: translateY(-5px); border-color: var(--accent); }
+
+.vaga strong { font-size: 2.2rem; font-weight: 800; color: #fff; }
+
+.vaga small {
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 6px;
+}
+
+/* Cores por Status */
+.vaga.VERDE { border-bottom: 4px solid var(--success); }
+.vaga.VERDE small { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+
+.vaga.VERMELHO { border-bottom: 4px solid var(--danger); }
+.vaga.VERMELHO small { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+
+/* Área de Logs */
+.log-container { max-width: 880px; margin: 0 auto; }
+
+.log-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.log-header {
+  padding: 15px 20px;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-dim);
+}
+
+.log-header h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+
+.custom-scroll {
+  list-style: none;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.custom-scroll li {
+  padding: 12px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.02);
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+
+.log-entrada { color: var(--success); }
+.log-saida { color: var(--danger); }
+
+/* Responsividade */
+@media (max-width: 950px) { .vagas-grid { grid-template-columns: repeat(3, 160px); } }
+@media (max-width: 600px) { .vagas-grid { grid-template-columns: repeat(2, 150px); } }
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
