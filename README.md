@@ -1,58 +1,53 @@
 Vaga Certa - Sistema de Monitoramento de Estacionamento
-O Vaga Certa e um simulador de gerenciamento de vagas de estacionamento em tempo real. O projeto aplica conceitos de Sistemas Embarcados, como o ciclo de Super-Loop e a abstracao de hardware (sensores), em um ambiente Web para monitorar ocupacao, filtrar ruidos de leitura e gerar relatorios analiticos.
+O Vaga Certa é uma solução para gestão de ocupação de vagas de estacionamento baseada em lógica de sensores de proximidade. O projeto aplica algoritmos de filtragem de dados para garantir a precisão dos estados de ocupação, evitando leituras falsas causadas por interferências externas.
 
-Funcionalidades
-Simulacao de Hardware: Abstracao de sensores ultrassonicos que geram dados de distancia dinamicamente.
+Funcionalidades Principais
+Monitoramento Simultâneo: Interface centralizada para visualização do status de todas as vagas em tempo real.
 
-Filtro de Ruido (RF07): Implementacao de logica de confirmacao em multiplos ciclos (debouncing) para diferenciar veiculos de pedestres ou objetos transitorios.
+Filtro de Confirmação em 3 Estágios: Implementação de algoritmo de estabilização. Uma entrada só é validada após três leituras consecutivas dentro do limite de distância configurado.
 
-Calibracao Dinamica: Interface para ajuste do limite de distancia dos sensores e da quantidade de vagas sem interrupcao do sistema.
+Saída Instantânea: Lógica de liberação imediata assim que o sensor detecta a ausência do veículo, priorizando a atualização da disponibilidade.
 
-Persistencia de Dados: Utilizacao de um buffer de memoria global que preserva o historico de eventos mesmo apos a reconfiguracao ou reinicio do layout do patio.
+Painel de Configuração: Interface para ajuste da quantidade de vagas e calibração da distância de detecção do sensor (1 a 300 cm).
 
-Exportacao de Dados:
+Exportação de Dados: Geração de logs de atividade e exportação de relatórios em formatos PDF e JSON.
 
-JSON: Geracao de arquivo com o historico completo de logs para analise externa.
-
-Relatorio de Pico (PDF): Processamento de dados historicos para identificar faixas horarias de maior ocupacao.
+Validação via Console: Sistema de rastreamento detalhado no terminal do desenvolvedor para auditoria dos contadores de confirmação.
 
 Tecnologias Utilizadas
-JavaScript (ES6+): Uso de Orientacao a Objetos (Classes), manipulacao de DOM e gerenciamento de processos assincronos.
+HTML5 e CSS3: Estrutura e estilização responsiva com foco em usabilidade.
 
-HTML5: Estrutura para controle e exibicao dos componentes.
+JavaScript (ES6+): Motor de processamento dos sensores e gerenciamento do estado em memória.
 
-CSS3: Design estruturado com foco em usabilidade e feedback visual de estados (Verde para livre, Vermelho para ocupado).
+Web Storage API (LocalStorage): Persistência de configurações e histórico de logs no navegador.
 
-Arquitetura do Software
-O sistema foi desenhado para operar como um firmware de microcontrolador:
+jsPDF: Biblioteca para renderização e exportação de documentos PDF.
 
-Camada de Hardware: A classe SensorUltrassonico simula a entrada de dados analogicos.
+Lógica de Funcionamento
+O sistema opera em um ciclo de varredura de 1 Hertz (uma leitura por segundo), seguindo o fluxo de decisão abaixo:
 
-Camada de Objeto de Negocio: A classe Vaga encapsula a logica de estado, contadores de confirmacao e seu proprio historico.
+Amostragem: O sistema gera uma leitura de distância para cada vaga cadastrada.
 
-Camada de Controle: A classe SistemaEstacionamento gerencia o Super-Loop, processando todas as vagas a cada 1000ms e atualizando a interface.
+Processamento de Entrada:
 
-Camada de Dados: Um buffer externo (historicoGlobal) garante a integridade dos dados coletados durante toda a sessao de uso.
+Se a leitura for menor ou igual ao limite definido, o contador de confirmação é incrementado.
 
-Como Instalar e Executar
-Clone o repositorio:
+Ao atingir três confirmações sucessivas, o status da vaga é alterado para Ocupado.
 
-Bash
-git clone https://github.com/seu-usuario/vaga-certa.git
-Navegue ate o diretorio do projeto.
+Caso uma leitura apresente valor superior ao limite antes da terceira confirmação, o contador é resetado.
 
-Certifique-se de que a estrutura de pastas esta preservada:
+Processamento de Saída:
 
-/index.html
+Se a vaga estiver ocupada e a leitura for superior ao limite, o estado é revertido para Livre sem a necessidade de confirmações múltiplas.
 
-/scripts/script.js
+Instruções de Instalação e Execução
+Realize o clone do repositório ou baixe os arquivos fonte.
 
-/styles/styles.css
+Execute o arquivo index.html em um navegador web moderno.
 
-Abra o arquivo index.html em um navegador.
+Utilize a página de configurações para definir os parâmetros operacionais do estacionamento.
 
-Requisitos de Sistema Implementados
-RF07: O sensor deve confirmar a presenca do veiculo por pelo menos 3 ciclos consecutivos antes de alterar o estado da vaga para ocupada, evitando falsos positivos causados por pedestres passando em frente ao sensor.
+Monitore as etapas de validação através do Console do Desenvolvedor (tecla F12).
 
-Licenca
-Este projeto e destinado a fins academicos e demonstracao de competencias em arquitetura de sistemas e logica de programacao.
+Licença
+Projeto desenvolvido para fins de estudo de lógica de programação e arquitetura de sistemas front-end. Permite-se a utilização e modificação para fins educacionais.
