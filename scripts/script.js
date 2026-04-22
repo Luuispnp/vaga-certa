@@ -1,134 +1,207 @@
-let intervaloGlobal = null;
-let historicoGlobal = JSON.parse(localStorage.getItem('vagaCerta_logs')) || [];
+/**
+ * script.js - Sistema Vaga Certa
+ * VERSÃO FINAL: Sincronização em Memória e Filtro de 3 Estágios
+ */
 
-class SensorSimulado {
-  ler() { return Math.floor(Math.random() * 350) + 1; }
-}
+// --- CONFIGURAÇÕES E ESTADO GLOBAL ---
+let config = JSON.parse(localStorage.getItem('config_estacionamento')) || {
+    qtdVagas: 5,
+    limite: 50
+};
 
-class Vaga {
-  constructor(id, limite) {
-    this.id = id;
-    this.limite = limite;
-    this.ocupada = false;
-    this.sensor = new SensorSimulado();
-    this.confirmacoes = 0;
-    this.dom = this.renderizar();
-  }
+// Variável em memória para garantir que o contador de confirmações não resete
+let vagasGlobais = [];
 
-  renderizar() {
-    const container = document.getElementById('estacionamento');
-    if (!container) return null;
-    const div = document.createElement('div');
-    div.className = 'vaga VERDE';
-    div.innerHTML = `<strong>${this.id < 10 ? '0' + this.id : this.id}</strong><small>Disponível</small>`;
-    container.appendChild(div);
-    return div;
-  }
-
-  monitorar() {
-    const d = this.sensor.ler();
-    if (d <= this.limite) this.confirmacoes++;
-    else this.confirmacoes = 0;
-
-    if (this.confirmacoes >= 3 && !this.ocupada) this.mudar(true);
-    else if (this.confirmacoes === 0 && this.ocupada) this.mudar(false);
-  }
-
-  mudar(status) {
-    this.ocupada = status;
-    if (this.dom) {
-      this.dom.className = `vaga ${status ? 'VERMELHO' : 'VERDE'}`;
-      this.dom.querySelector('small').innerText = status ? 'Ocupada' : 'Disponível';
+// --- INICIALIZAÇÃO ---
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('estacionamento')) {
+        inicializarVagas();
+        renderizarVagas();
+        atualizarContador();
+        carregarLogs();
+        
+        // Loop principal: Processa todos os sensores a cada 1 segundo
+        setInterval(processarSensores, 1000);
     }
-    
-    const registro = {
-      texto: `Vaga ${this.id}: ${status ? 'Entrada' : 'Saída'}`,
-      hora: new Date().toLocaleTimeString(),
-      classe: status ? 'log-entrada' : 'log-saida'
-    };
-    
-    historicoGlobal.push(registro);
-    localStorage.setItem('vagaCerta_logs', JSON.stringify(historicoGlobal));
-    this.adicionarLog(registro);
-    if (window.sistema) window.sistema.atualizarContador();
-  }
 
-  adicionarLog(reg) {
-    const lista = document.getElementById('lista-logs');
-    if (!lista) return;
-    const li = document.createElement('li');
-    li.className = reg.classe;
-    li.innerHTML = `<span>${reg.texto}</span> <strong>${reg.hora}</strong>`;
-    lista.prepend(li);
-    if (lista.children.length > 30) lista.lastChild.remove();
-  }
+    if (document.getElementById('inputVagas')) {
+        document.getElementById('inputVagas').value = config.qtdVagas;
+        document.getElementById('inputLimite').value = config.limite;
+    }
+});
+
+// Inicializa o array de vagas na memória do navegador
+function inicializarVagas() {
+    const salvo = JSON.parse(localStorage.getItem('estado_vagas')) || [];
+    
+    // Se o que está salvo bate com a config atual, usamos o salvo, senão criamos novo
+    if (salvo.length === config.qtdVagas) {
+        vagasGlobais = salvo;
+    } else {
+        vagasGlobais = Array.from({ length: config.qtdVagas }, (_, i) => ({
+            id: i + 1,
+            status: "VERDE", // VERDE = Livre, VERMELHO = Ocupado
+            leiturasPresenca: 0
+        }));
+        localStorage.setItem('estado_vagas', JSON.stringify(vagasGlobais));
+    }
 }
 
-class GestorEstacionamento {
-  constructor(qtd, limite) {
-    this.vagas = Array.from({length: qtd}, (_, i) => new Vaga(i + 1, limite));
-    this.atualizarContador();
-    this.carregarLogsAntigos();
-  }
+// Desenha as vagas na tela
+function renderizarVagas() {
+    const container = document.getElementById('estacionamento');
+    if (!container) return;
 
-  carregarLogsAntigos() {
+    container.innerHTML = "";
+    vagasGlobais.forEach(vaga => {
+        const textoStatus = vaga.status === "VERDE" ? "Livre" : "Ocupada";
+        const vagaElement = document.createElement('div');
+        vagaElement.className = `vaga ${vaga.status}`;
+        vagaElement.innerHTML = `
+            <strong>${vaga.id.toString().padStart(2, '0')}</strong>
+            <small>${textoStatus}</small>
+        `;
+        container.appendChild(vagaElement);
+    });
+}
+
+// --- LÓGICA DOS SENSORES ---
+function processarSensores() {
+    let houveMudancaEstado = false;
+
+    vagasGlobais.forEach(vaga => {
+        let distanciaLida;
+
+        // Simulação inteligente: se começou a detectar, força a manter o objeto lá para teste
+        if (vaga.leiturasPresenca > 0 || vaga.status === "VERMELHO") {
+            // 90% de chance de manter o carro (distância baixa), 10% de chance de sair (distância alta)
+            distanciaLida = Math.random() > 0.1 ? (Math.random() * (config.limite - 5)) : (config.limite + 20);
+        } else {
+            // Se está livre, 10% de chance de um carro tentar entrar
+            distanciaLida = Math.random() < 0.1 ? (Math.random() * (config.limite - 5)) : (Math.random() * 200 + config.limite);
+        }
+        
+        const detectouPresenca = distanciaLida <= config.limite;
+
+        if (vaga.status === "VERDE") {
+            // LÓGICA DE ENTRADA (Filtro de 3 segundos)
+            if (detectouPresenca) {
+                vaga.leiturasPresenca++;
+                console.log(`[SENSOR] Vaga ${vaga.id}: ${Math.floor(distanciaLida)}cm | Confirmação: ${vaga.leiturasPresenca}/3`);
+                
+                if (vaga.leiturasPresenca >= 3) {
+                    vaga.status = "VERMELHO";
+                    vaga.leiturasPresenca = 0;
+                    registrarLog("ENTRADA", vaga.id, Math.floor(distanciaLida));
+                    houveMudancaEstado = true;
+                }
+            } else {
+                // Se o sensor der leitura alta, reseta o contador de confirmação imediatamente
+                vaga.leiturasPresenca = 0;
+            }
+        } else {
+            // LÓGICA DE SAÍDA (Imediata se distância > limite)
+            if (!detectouPresenca) {
+                vaga.status = "VERDE";
+                vaga.leiturasPresenca = 0;
+                registrarLog("SAIDA", vaga.id, Math.floor(distanciaLida));
+                houveMudancaEstado = true;
+            }
+        }
+    });
+
+    // Atualiza o visual e o banco de dados apenas se uma vaga mudou de cor
+    if (houveMudancaEstado) {
+        localStorage.setItem('estado_vagas', JSON.stringify(vagasGlobais));
+        renderizarVagas();
+        atualizarContador();
+        carregarLogs();
+    }
+}
+
+// --- UTILITÁRIOS E INTERFACE ---
+
+function registrarLog(tipo, vagaId, distancia) {
+    const logs = JSON.parse(localStorage.getItem('logs_vagas')) || [];
+    const novoRegistro = {
+        tipo: tipo,
+        vaga: vagaId.toString().padStart(2, '0'),
+        horario: new Date().toLocaleTimeString('pt-BR'),
+        distancia: distancia
+    };
+    logs.push(novoRegistro);
+    if (logs.length > 100) logs.shift();
+    localStorage.setItem('logs_vagas', JSON.stringify(logs));
+
+    // Console log colorido para validação
+    const cor = tipo === 'ENTRADA' ? 'color: #ff4757' : 'color: #2ed573';
+    console.log(`%c[SISTEMA] %c${tipo} EFETIVADA %cVaga ${novoRegistro.vaga}`, 'font-weight:bold; color:orange', `font-weight:bold; ${cor}`, 'color:white');
+}
+
+function carregarLogs() {
     const lista = document.getElementById('lista-logs');
     if (!lista) return;
-    historicoGlobal.slice(-15).forEach(reg => {
-      const li = document.createElement('li');
-      li.className = reg.classe;
-      li.innerHTML = `<span>${reg.texto}</span> <strong>${reg.hora}</strong>`;
-      lista.prepend(li);
-    });
-  }
-
-  atualizarContador() {
-    const livres = this.vagas.filter(v => !v.ocupada).length;
-    const contadorDom = document.getElementById('contador');
-    if (contadorDom) contadorDom.innerText = livres;
-  }
-
-  exportarDados() {
-    const blob = new Blob([JSON.stringify(historicoGlobal, null, 2)], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'historico.json'; a.click();
-  }
-
-  gerarRelatorioPDF() {
-    const win = window.open('', '_blank');
-    win.document.write(`<html><body style="font-family:sans-serif;padding:40px"><h2>Relatório Vaga Certa</h2><hr>`);
-    historicoGlobal.forEach(h => win.document.write(`<p>${h.hora} - ${h.texto}</p>`));
-    win.document.close(); win.print();
-  }
+    const logs = JSON.parse(localStorage.getItem('logs_vagas')) || [];
+    lista.innerHTML = logs.slice(-10).reverse().map(log => `
+        <li class="log-${log.tipo.toLowerCase()}" style="display:flex; justify-content:space-between; padding:10px 20px; border-bottom:1px solid rgba(255,255,255,0.05); list-style:none;">
+            <span>${log.tipo === 'ENTRADA' ? '⬆️' : '⬇️'} Vaga ${log.vaga}</span>
+            <strong style="color:#94a3b8;">${log.horario}</strong>
+        </li>
+    `).join('');
 }
 
 function salvarConfiguracoes() {
-  const v = document.getElementById('inputVagas').value;
-  const l = document.getElementById('inputLimite').value;
-  localStorage.setItem('vagaCerta_config', JSON.stringify({vagas: v, limite: l}));
-  alert("Configurações Aplicadas!");
+    const inputVagas = document.getElementById('inputVagas');
+    const inputLimite = document.getElementById('inputLimite');
+    
+    const novaQtd = parseInt(inputVagas.value);
+    const novoLimite = parseInt(inputLimite.value);
+
+    if (novaQtd >= 1 && novaQtd <= 50 && novoLimite >= 1 && novoLimite <= 300) {
+        config = { qtdVagas: novaQtd, limite: novoLimite };
+        localStorage.setItem('config_estacionamento', JSON.stringify(config));
+        localStorage.removeItem('estado_vagas'); // Força a reinicialização
+        alert("✅ Configurações salvas!");
+        location.href = 'index.html';
+    } else {
+        alert("Valores inválidos! Vagas (1-50), Limite (1-300)");
+    }
 }
+
+function atualizarContador() {
+    const contador = document.getElementById('contador');
+    if (contador) {
+        const livres = vagasGlobais.filter(v => v.status === "VERDE").length;
+        contador.innerText = livres;
+    }
+}
+
+window.sistema = {
+    exportarDados: () => {
+        const logs = localStorage.getItem('logs_vagas') || "[]";
+        const blob = new Blob([logs], { type: "application/json" });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = "historico_estacionamento.json";
+        a.click();
+    },
+    gerarRelatorioPDF: () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const logs = JSON.parse(localStorage.getItem('logs_vagas')) || [];
+        doc.text("VAGA CERTA - RELATÓRIO DE MONITORAMENTO", 20, 20);
+        let y = 40;
+        logs.slice(-20).reverse().forEach(l => {
+            doc.text(`${l.horario} | ${l.tipo} | Vaga ${l.vaga} | Dist: ${l.distancia}cm`, 20, y);
+            y += 10;
+        });
+        doc.save("Relatorio.pdf");
+    }
+};
 
 function limparHistorico() {
-  if (confirm("Limpar todos os registos?")) {
-    localStorage.removeItem('vagaCerta_logs');
-    historicoGlobal = [];
-    location.reload();
-  }
+    if (confirm("Isso apagará todas as configurações e logs. Confirmar?")) {
+        localStorage.clear();
+        location.reload();
+    }
 }
-
-window.onload = () => {
-  const config = JSON.parse(localStorage.getItem('vagaCerta_config')) || {vagas: 5, limite: 50};
-  
-  if (document.getElementById('inputVagas')) {
-    document.getElementById('inputVagas').value = config.vagas;
-    document.getElementById('inputLimite').value = config.limite;
-  }
-
-  window.sistema = new GestorEstacionamento(parseInt(config.vagas), parseInt(config.limite));
-  
-  if (document.getElementById('estacionamento')) {
-    intervaloGlobal = setInterval(() => window.sistema.vagas.forEach(v => v.monitorar()), 2000);
-  }
-};
