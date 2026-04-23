@@ -44,11 +44,35 @@ Caso uma leitura apresente valor superior ao limite antes da terceira confirmaç
 
 Se a vaga estiver ocupada e a leitura for superior ao limite, o estado é revertido para Livre sem a necessidade de confirmações múltiplas.
 
+**Banco de Dados**
+
+O sistema utiliza **SQLite** para persistência permanente de todos os dados, gerenciado por um servidor Node.js local.
+
+Tabelas:
+- `configuracoes` — parâmetros do sistema (quantidade de vagas, limite do sensor)
+- `vagas` — estado atual de cada vaga (VERDE / VERMELHO) com timestamp da última alteração
+- `historico` — registro completo de todos os eventos de ENTRADA e SAIDA (vaga, tipo, distância do sensor, data/hora)
+- `sessoes` — períodos completos de ocupação: quando a vaga foi ocupada, quando ficou disponível e duração em minutos
+
+O banco é criado automaticamente em `backend/vagacerta.db` na primeira execução.
+
 **Instruções de Instalação e Execução**
 
-Realize o clone do repositório ou baixe os arquivos fonte.
+**Pré-requisito:** Node.js instalado (https://nodejs.org — versão LTS recomendada).
 
-Execute o arquivo index.html em um navegador web moderno.
+**Windows (forma mais simples):** Dê duplo clique no arquivo `iniciar.bat`. Ele instala as dependências automaticamente na primeira vez e inicia o servidor.
+
+**Manual (qualquer sistema):**
+
+```
+cd backend
+npm install
+node server.js
+```
+
+Acesse o sistema em: **http://localhost:3000**
+
+O sistema não deve mais ser aberto diretamente como arquivo (file://) — utilize sempre a URL acima após iniciar o servidor.
 
 Utilize a página de configurações para definir os parâmetros operacionais do estacionamento.
 

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vaga Certa | Administrador</title>
+  <link rel="stylesheet" href="styles/global.css">
+  <link rel="stylesheet" href="styles/admin.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container admin-container">
+
+    <header class="main-header">
+      <div class="logo">
+        <div class="logo-icon admin-gradient"></div>
+        <div class="logo-text">
+          <h1>VAGA<span>CERTA</span></h1>
+          <p>Painel Administrativo</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="config.html" class="btn-back">Configurações</a>
+        <a href="index.html" class="btn-back">Voltar ao Dashboard</a>
+      </div>
+    </header>
+
+    <!-- Seletor de Vagas -->
+    <section class="vaga-selector-section">
+      <span class="selector-label">Filtrar por vaga:</span>
+      <div class="vaga-pills" id="vagaPills">
+        <button class="pill active" data-vaga="todas" onclick="selecionarVaga('todas', this)">
+          Todas as Vagas
+        </button>
+        <!-- Demais pills gerados via JS após carregar vagas da API -->
+      </div>
+    </section>
+
+    <!-- Cards de Estatísticas -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Total de Eventos</span>
+        <span class="stat-value" id="statTotal">—</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Entradas</span>
+        <span class="stat-value entrada" id="statEntradas">—</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Saídas</span>
+        <span class="stat-value saida" id="statSaidas">—</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Duração Média / Sessões</span>
+        <span class="stat-value" id="statMedia">—</span>
+        <span class="stat-sub" id="statSessoes">— sessões concluídas</span>
+      </div>
+    </div>
+
+    <!-- Tabela de Eventos -->
+    <section class="tabela-section">
+      <div class="tabela-header">
+        <div class="tabela-titulo">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <h3>Histórico Completo de Eventos</h3>
+          <span class="badge-count" id="badgeEventos">0 registros</span>
+        </div>
+        <div class="tabela-filtros">
+          <button class="filter-btn active" data-tipo="todos"   onclick="filtrarTipo('todos', this)">Todos</button>
+          <button class="filter-btn"        data-tipo="ENTRADA" onclick="filtrarTipo('ENTRADA', this)">Entradas</button>
+          <button class="filter-btn"        data-tipo="SAIDA"   onclick="filtrarTipo('SAIDA', this)">Saídas</button>
+        </div>
+      </div>
+      <div class="tabela-wrapper custom-scroll">
+        <table class="eventos-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Data / Hora</th>
+              <th>Vaga</th>
+              <th>Tipo</th>
+              <th>Distância Sensor</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaEventosBody"></tbody>
+        </table>
+      </div>
+      <div class="tabela-vazia" id="tabelaEventosVazia" style="display:none">
+        Nenhum evento encontrado para esta seleção.
+      </div>
+    </section>
+
+    <!-- Tabela de Sessões -->
+    <section class="tabela-section">
+      <div class="tabela-header">
+        <div class="tabela-titulo">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <h3>Sessões de Ocupação</h3>
+          <span class="badge-count" id="badgeSessoes">0 registros</span>
+        </div>
+      </div>
+      <div class="tabela-wrapper custom-scroll">
+        <table class="eventos-table sessoes-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Vaga</th>
+              <th>Entrada</th>
+              <th>Saída</th>
+              <th>Duração</th>
+              <th>Dist. Entrada</th>
+              <th>Dist. Saída</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaSessoesBody"></tbody>
+        </table>
+      </div>
+      <div class="tabela-vazia" id="tabelaSessoesVazia" style="display:none">
+        Nenhuma sessão encontrada para esta seleção.
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+
+    let vagaAtual    = 'todas'; // 'todas' ou número da vaga
+    let tipoAtual    = 'todos'; // 'todos' | 'ENTRADA' | 'SAIDA'
+    let todosEventos = [];      // cache local de todos os eventos carregados
+
+    // ─── INICIALIZAÇÃO ────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', async () => {
+      const ok = await checarServidor();
+      if (!ok) return;
+      await Promise.all([
+        carregarPills(),
+        carregarDados('todas')
+      ]);
+    });
+
+    async function checarServidor() {
+      try {
+        const res = await fetch(`${API_URL}/configuracoes`);
+        if (!res.ok) throw new Error();
+        return true;
+      } catch {
+        mostrarErroConexao();
+        return false;
+      }
+    }
+
+    function mostrarErroConexao() {
+      const banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ef4444;color:#fff;text-align:center;padding:14px;font-weight:700;font-size:.9rem;z-index:9999;';
+      banner.textContent = '⚠️  Servidor offline — execute: cd backend  →  node --no-warnings server.js  |  Acesse: http://localhost:3000';
+      document.body.prepend(banner);
+    }
+
+    // ─── PILLS DE VAGAS ───────────────────────────────────────────────────────
+    async function carregarPills() {
+      try {
+        const vagas = await fetch(`${API_URL}/vagas`).then(r => r.json());
+        const container = document.getElementById('vagaPills');
+
+        vagas.forEach(v => {
+          const btn = document.createElement('button');
+          btn.className = 'pill';
+          btn.dataset.vaga = v.numero;
+          btn.onclick = () => selecionarVaga(v.numero, btn);
+
+          const statusClass = v.status === 'VERDE' ? 'verde' : 'vermelho';
+          btn.innerHTML = `
+            <span class="status-dot ${statusClass}"></span>
+            Vaga ${String(v.numero).padStart(2, '0')}
+          `;
+          container.appendChild(btn);
+        });
+      } catch {
+        console.error('[ADMIN] Falha ao carregar pills de vagas.');
+      }
+    }
+
+    // ─── SELEÇÃO DE VAGA ─────────────────────────────────────────────────────
+    async function selecionarVaga(vaga, btnEl) {
+      vagaAtual = vaga;
+      tipoAtual = 'todos';
+
+      // Atualiza pills
+      document.querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+      btnEl.classList.add('active');
+
+      // Reseta filtro de tipo
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('.filter-btn[data-tipo="todos"]').classList.add('active');
+
+      await carregarDados(vaga);
+    }
+
+    // ─── CARGA DE DADOS ───────────────────────────────────────────────────────
+    async function carregarDados(vaga) {
+      const vagaParam = vaga === 'todas' ? '' : `?vaga=${vaga}`;
+
+      try {
+        const [eventos, sessoes, stats] = await Promise.all([
+          fetch(`${API_URL}/historico${vagaParam}`).then(r => r.json()),
+          fetch(`${API_URL}/sessoes${vagaParam}`).then(r => r.json()),
+          fetch(`${API_URL}/stats${vagaParam}`).then(r => r.json())
+        ]);
+
+        todosEventos = eventos; // guarda para filtro de tipo client-side
+
+        atualizarStats(stats);
+        renderizarEventos(eventos);
+        renderizarSessoes(sessoes);
+      } catch {
+        console.error('[ADMIN] Falha ao carregar dados.');
+      }
+    }
+
+    // ─── STATS ───────────────────────────────────────────────────────────────
+    function atualizarStats(s) {
+      document.getElementById('statTotal').textContent   = s.total_eventos   ?? '0';
+      document.getElementById('statEntradas').textContent = s.total_entradas ?? '0';
+      document.getElementById('statSaidas').textContent  = s.total_saidas   ?? '0';
+      document.getElementById('statMedia').textContent   = s.media_minutos != null
+        ? `${s.media_minutos} min`
+        : '—';
+      const n = s.total_sessoes ?? 0;
+      document.getElementById('statSessoes').textContent = `${n} sessão${n !== 1 ? 'ões' : ''} concluída${n !== 1 ? 's' : ''}`;
+    }
+
+    // ─── FILTRO DE TIPO ───────────────────────────────────────────────────────
+    function filtrarTipo(tipo, btnEl) {
+      tipoAtual = tipo;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btnEl.classList.add('active');
+
+      const filtrado = tipo === 'todos'
+        ? todosEventos
+        : todosEventos.filter(e => e.tipo === tipo);
+
+      renderizarEventos(filtrado);
+    }
+
+    // ─── RENDER: EVENTOS ─────────────────────────────────────────────────────
+    function renderizarEventos(eventos) {
+      const tbody  = document.getElementById('tabelaEventosBody');
+      const vazia  = document.getElementById('tabelaEventosVazia');
+      const badge  = document.getElementById('badgeEventos');
+
+      badge.textContent = `${eventos.length} registro${eventos.length !== 1 ? 's' : ''}`;
+
+      if (eventos.length === 0) {
+        tbody.innerHTML = '';
+        vazia.style.display = 'block';
+        return;
+      }
+      vazia.style.display = 'none';
+
+      tbody.innerHTML = eventos.map(e => {
+        const dt       = new Date(e.registrado_em).toLocaleString('pt-BR');
+        const vaga     = String(e.vaga_numero).padStart(2, '0');
+        const isEntrada = e.tipo === 'ENTRADA';
+        const badge    = isEntrada
+          ? '<span class="tipo-badge entrada">⬆ ENTRADA</span>'
+          : '<span class="tipo-badge saida">⬇ SAÍDA</span>';
+        const dist     = e.distancia_cm != null ? `${e.distancia_cm} cm` : '—';
+
+        return `
+          <tr>
+            <td class="col-id">${e.id}</td>
+            <td>${dt}</td>
+            <td class="col-vaga">${vaga}</td>
+            <td>${badge}</td>
+            <td class="col-dist">${dist}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    // ─── RENDER: SESSÕES ─────────────────────────────────────────────────────
+    function renderizarSessoes(sessoes) {
+      const tbody = document.getElementById('tabelaSessoesBody');
+      const vazia = document.getElementById('tabelaSessoesVazia');
+      const badge = document.getElementById('badgeSessoes');
+
+      badge.textContent = `${sessoes.length} registro${sessoes.length !== 1 ? 's' : ''}`;
+
+      if (sessoes.length === 0) {
+        tbody.innerHTML = '';
+        vazia.style.display = 'block';
+        return;
+      }
+      vazia.style.display = 'none';
+
+      tbody.innerHTML = sessoes.map(s => {
+        const entrada  = new Date(s.entrada_em).toLocaleString('pt-BR');
+        const saida    = s.saida_em
+          ? new Date(s.saida_em).toLocaleString('pt-BR')
+          : '<span class="tag-aberta">● Em aberto</span>';
+        const duracao  = s.duracao_minutos != null
+          ? `${s.duracao_minutos} min`
+          : '—';
+        const vaga     = String(s.vaga_numero).padStart(2, '0');
+        const distEnt  = s.distancia_entrada_cm != null ? `${s.distancia_entrada_cm} cm` : '—';
+        const distSai  = s.distancia_saida_cm  != null ? `${s.distancia_saida_cm} cm`  : '—';
+
+        const duracaoClass = s.saida_em ? 'col-duracao' : 'col-aberta';
+
+        return `
+          <tr>
+            <td class="col-id">${s.id}</td>
+            <td class="col-vaga">${vaga}</td>
+            <td>${entrada}</td>
+            <td>${saida}</td>
+            <td class="${duracaoClass}">${duracao}</td>
+            <td class="col-dist">${distEnt}</td>
+            <td class="col-dist">${distSai}</td>
+          </tr>`;
+      }).join('');
+    }
+  </script>
+</body>
+</html>

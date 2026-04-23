@@ -1,0 +1,12 @@
+{
+  "name": "vaga-certa-backend",
+  "version": "1.0.0",
+  "description": "Backend com banco de dados SQLite para o sistema Vaga Certa",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
